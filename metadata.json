@@ -1,0 +1,6 @@
+{
+  "name": "Nexus Tunnel VPN & WebPanel",
+  "description": "Application VPN VLESS professionnelle connectée au WebPanel Nexus Tunnel avec gestion d'adhésion pour les pays africains, quotas en temps réel et tokens sécurisés.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
