@@ -10,7 +10,7 @@ const GITHUB_CONFIG_KEY = 'nexus_github_repo_config';
 
 export const DEFAULT_GITHUB_CONFIG: GithubRepoConfig = {
   owner: 'tchindaazice',
-  repo: 'nexus-tunnel-vpn',
+  repo: 'App-xunes',
   tag: 'v3.2.0',
   apkName: 'NexusTunnel-v3.2.0.apk',
 };
@@ -20,7 +20,12 @@ export const GithubConfigService = {
     try {
       const stored = localStorage.getItem(GITHUB_CONFIG_KEY);
       if (stored) {
-        return { ...DEFAULT_GITHUB_CONFIG, ...JSON.parse(stored) };
+        const parsed = JSON.parse(stored);
+        // Ensure exact repo if default was old
+        if (parsed.repo === 'nexus-tunnel-vpn' || !parsed.repo) {
+          parsed.repo = 'App-xunes';
+        }
+        return { ...DEFAULT_GITHUB_CONFIG, ...parsed };
       }
     } catch {}
     return DEFAULT_GITHUB_CONFIG;
@@ -41,18 +46,18 @@ export const GithubConfigService = {
       return conf.customDownloadUrl.trim();
     }
     const owner = conf.owner.trim() || 'tchindaazice';
-    const repo = conf.repo.trim() || 'nexus-tunnel-vpn';
+    const repo = conf.repo.trim() || 'App-xunes';
     const tag = conf.tag.trim() || 'v3.2.0';
     const apk = conf.apkName.trim() || 'NexusTunnel-v3.2.0.apk';
 
-    // Standard GitHub Releases direct download URL
+    // Exact direct download URL for the user's release
     return `https://github.com/${owner}/${repo}/releases/download/${tag}/${apk}`;
   },
 
   getLatestApkDownloadUrl(config?: GithubRepoConfig): string {
     const conf = config || this.getConfig();
     const owner = conf.owner.trim() || 'tchindaazice';
-    const repo = conf.repo.trim() || 'nexus-tunnel-vpn';
+    const repo = conf.repo.trim() || 'App-xunes';
     const apk = conf.apkName.trim() || 'NexusTunnel-v3.2.0.apk';
 
     return `https://github.com/${owner}/${repo}/releases/latest/download/${apk}`;
@@ -61,11 +66,15 @@ export const GithubConfigService = {
   getRepoUrl(config?: GithubRepoConfig): string {
     const conf = config || this.getConfig();
     const owner = conf.owner.trim() || 'tchindaazice';
-    const repo = conf.repo.trim() || 'nexus-tunnel-vpn';
+    const repo = conf.repo.trim() || 'App-xunes';
     return `https://github.com/${owner}/${repo}`;
   },
 
   getReleasesPageUrl(config?: GithubRepoConfig): string {
     return `${this.getRepoUrl(config)}/releases`;
+  },
+
+  getNewReleaseUrl(config?: GithubRepoConfig): string {
+    return `${this.getRepoUrl(config)}/releases/new`;
   }
 };

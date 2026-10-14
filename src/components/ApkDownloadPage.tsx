@@ -231,13 +231,26 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                   </a>
 
                   <a
+                    href={`https://github.com/${githubConfig.owner}/${githubConfig.repo}/releases/new?tag=${githubConfig.tag}&title=Nexus+Tunnel+${githubConfig.tag}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-1/2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-cyan-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-cyan-500/30 transition-colors"
+                  >
+                    <GitBranch className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Publier Release sur GitHub</span>
+                  </a>
+                </div>
+
+                <div className="text-[11px] text-slate-400 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <span>Dépôt cible : <strong className="text-white font-mono">{githubConfig.owner}/{githubConfig.repo}</strong></span>
+                  <a
                     href={githubRepoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-1/2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-colors"
+                    className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-mono text-[10px]"
                   >
-                    <Github className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Ouvrir mon Repo GitHub</span>
+                    <span>Ouvrir GitHub</span>
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
 
@@ -245,7 +258,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                   <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2 animate-fade-in mt-2">
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>
-                      Téléchargement de <strong>{downloadSuccess}</strong> lancé depuis votre repo GitHub !
+                      Téléchargement de <strong>{downloadSuccess}</strong> lancé depuis <strong>github.com/{githubConfig.owner}/{githubConfig.repo}</strong> !
                     </span>
                   </div>
                 )}
