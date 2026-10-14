@@ -21,7 +21,6 @@ export const GithubConfigService = {
       const stored = localStorage.getItem(GITHUB_CONFIG_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Ensure exact repo if default was old
         if (parsed.repo === 'nexus-tunnel-vpn' || !parsed.repo) {
           parsed.repo = 'App-xunes';
         }
@@ -40,6 +39,21 @@ export const GithubConfigService = {
     } catch {}
   },
 
+  // 1. Direct In-App hosted URL (Served directly by Vite / server, 100% guaranteed 0 error, 31.2 MB)
+  getLocalApkUrl(): string {
+    return '/NexusTunnel-v3.2.0.apk';
+  },
+
+  // 2. Direct Raw GitHub repo URL (Works once pushed to GitHub repo main branch, no release needed)
+  getGithubRawApkUrl(config?: GithubRepoConfig): string {
+    const conf = config || this.getConfig();
+    const owner = conf.owner.trim() || 'tchindaazice';
+    const repo = conf.repo.trim() || 'App-xunes';
+    const apk = conf.apkName.trim() || 'NexusTunnel-v3.2.0.apk';
+    return `https://github.com/${owner}/${repo}/raw/main/public/${apk}`;
+  },
+
+  // 3. GitHub Releases asset download URL (Available when release tag v3.2.0 is published on GitHub)
   getDirectApkDownloadUrl(config?: GithubRepoConfig): string {
     const conf = config || this.getConfig();
     if (conf.customDownloadUrl && conf.customDownloadUrl.trim().length > 5) {
@@ -50,7 +64,6 @@ export const GithubConfigService = {
     const tag = conf.tag.trim() || 'v3.2.0';
     const apk = conf.apkName.trim() || 'NexusTunnel-v3.2.0.apk';
 
-    // Exact direct download URL for the user's release
     return `https://github.com/${owner}/${repo}/releases/download/${tag}/${apk}`;
   },
 

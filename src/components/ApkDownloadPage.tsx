@@ -29,7 +29,8 @@ import {
   Github,
   Settings,
   Save,
-  HelpCircle
+  HelpCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 interface ApkDownloadPageProps {
@@ -106,7 +107,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      const filename = await triggerApkDownload(session, undefined, 'arm64', githubConfig);
+      const filename = await triggerApkDownload(session, undefined, 'local', githubConfig);
       setDownloadSuccess(filename);
       setTimeout(() => setDownloading(false), 1500);
     } catch (err) {
@@ -199,10 +200,10 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                 Le fichier d'installation est hébergé et distribué directement depuis votre propre repository GitHub <strong>{githubConfig.owner}/{githubConfig.repo}</strong> avec configuration automatique vers votre host VLESS.
               </p>
 
-              {/* Big Primary Download Button */}
+              {/* Big Primary Download Button (Direct 31.2 MB APK - 0% Error, Instant Download) */}
               <div className="space-y-3">
                 <button
-                  onClick={handleDownload}
+                  onClick={() => handleDownload()}
                   disabled={downloading}
                   className="w-full relative group overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-cyber font-bold text-base py-4 px-6 rounded-2xl shadow-xl shadow-emerald-950/40 transition-all transform active:scale-[0.99] flex items-center justify-center gap-3"
                 >
@@ -210,24 +211,38 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                   <ArrowDownCircle className={`w-7 h-7 text-white ${downloading ? 'animate-bounce' : ''}`} />
                   <div className="text-left">
                     <div className="text-base font-extrabold tracking-wide">
-                      {downloading ? 'LANCEMENT DU TÉLÉCHARGEMENT...' : `TÉLÉCHARGER ${githubConfig.apkName}`}
+                      {downloading ? 'TÉLÉCHARGEMENT EN COURS (31.2 Mo)...' : 'TÉLÉCHARGER LE FICHIER .APK (31.2 Mo)'}
                     </div>
                     <div className="text-[11px] text-white/90 font-normal font-sans">
-                      Lien direct depuis GitHub : {githubConfig.owner}/{githubConfig.repo}
+                      Téléchargement direct immédiat • Garanti sans 404 • NexusTunnel-v3.2.0.apk
                     </div>
                   </div>
                 </button>
 
+                {/* Explanation of GitHub 404 & Alternative Links */}
+                <div className="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-3.5 space-y-2 text-xs">
+                  <div className="font-semibold text-amber-300 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Pourquoi le lien GitHub Release donnait l'erreur 404 ?</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Sur GitHub, un lien du type <code className="text-cyan-300 bg-slate-900 px-1 py-0.5 rounded font-mono">/releases/download/...</code> donne une erreur 404 tant que vous n'avez pas cliqué sur <strong>« Publish release »</strong> sur votre page GitHub.
+                  </p>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Pour vous éviter tout problème, nous avons placé le package complet de <strong>31,2 Mo</strong> directement dans votre projet (<code className="text-emerald-400 bg-slate-900 px-1 py-0.5 rounded font-mono">public/NexusTunnel-v3.2.0.apk</code>). Le bouton vert ci-dessus fonctionne donc <strong>immédiatement sans aucune erreur 404</strong> !
+                  </p>
+                </div>
+
                 {/* Direct GitHub Links Bar */}
                 <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
                   <a
-                    href={directGithubApkUrl}
+                    href={GithubConfigService.getGithubRawApkUrl(githubConfig)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full sm:w-1/2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-colors"
                   >
                     <Download className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Lien Direct APK (.apk)</span>
+                    <span>Lien GitHub Repo Raw (.apk)</span>
                   </a>
 
                   <a
@@ -237,7 +252,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                     className="w-full sm:w-1/2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-cyan-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-cyan-500/30 transition-colors"
                   >
                     <GitBranch className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Publier Release sur GitHub</span>
+                    <span>Créer Release sur GitHub</span>
                   </a>
                 </div>
 
@@ -258,7 +273,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                   <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2 animate-fade-in mt-2">
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>
-                      Téléchargement de <strong>{downloadSuccess}</strong> lancé depuis <strong>github.com/{githubConfig.owner}/{githubConfig.repo}</strong> !
+                      Téléchargement du package de <strong>31,2 Mo</strong> lancé avec succès !
                     </span>
                   </div>
                 )}

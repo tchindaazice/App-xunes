@@ -1028,7 +1028,7 @@ export const WebPanelAdmin: React.FC<WebPanelAdminProps> = ({ onBackToApp, onOpe
                   <button
                     type="button"
                     onClick={() => {
-                      triggerApkDownload(null, undefined, 'arm64', githubConfig);
+                      triggerApkDownload(null, undefined, 'local', githubConfig);
                     }}
                     className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold rounded-xl flex items-center gap-2"
                   >
