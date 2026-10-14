@@ -1,30 +1,19 @@
 import { UserSession, VpnSettings } from '../types/vpn';
 import { buildVlessUri } from './vlessConfig';
-
-// Official signed production Android VLESS APKs (full 31.2 MB installer packages)
-export const APK_OFFICIAL_URL_ARM64 =
-  'https://github.com/2dust/v2rayNG/releases/download/1.9.15/v2rayNG_1.9.15_arm64-v8a.apk';
-
-export const APK_OFFICIAL_URL_UNIVERSAL =
-  'https://github.com/2dust/v2rayNG/releases/download/1.9.15/v2rayNG_1.9.15_Universal.apk';
-
-export interface ApkDownloadOptions {
-  arch?: 'arm64' | 'universal';
-  session?: UserSession | null;
-  settings?: VpnSettings;
-}
+import { GithubConfigService, GithubRepoConfig } from './githubConfig';
 
 /**
- * Triggers instant download of the real 31.2 MB signed Android APK file
- * that can be installed on Android without parse errors.
+ * Triggers instant download of the custom Nexus Tunnel APK from the user's GitHub repository
  */
 export async function triggerApkDownload(
   session?: UserSession | null,
   settings?: VpnSettings,
-  arch: 'arm64' | 'universal' = 'arm64'
+  arch: 'arm64' | 'universal' = 'arm64',
+  customConfig?: GithubRepoConfig
 ): Promise<string> {
-  const targetUrl = arch === 'universal' ? APK_OFFICIAL_URL_UNIVERSAL : APK_OFFICIAL_URL_ARM64;
-  const filename = arch === 'universal' ? 'NexusTunnel-v3.2.0-Universal.apk' : 'NexusTunnel-v3.2.0-arm64.apk';
+  const config = customConfig || GithubConfigService.getConfig();
+  const targetUrl = GithubConfigService.getDirectApkDownloadUrl(config);
+  const filename = config.apkName || 'NexusTunnel-v3.2.0.apk';
 
   // Automatically copy the pre-configured VLESS URI into clipboard for 1-second auto-import
   if (session) {
@@ -34,7 +23,7 @@ export async function triggerApkDownload(
     } catch {}
   }
 
-  // Trigger download of the genuine 31.2 MB APK package
+  // Trigger download from the user's GitHub repository release
   const a = document.createElement('a');
   a.href = targetUrl;
   a.download = filename;
@@ -55,6 +44,6 @@ export function openVlessInInstalledApp(vlessUri: string) {
   try {
     navigator.clipboard.writeText(vlessUri);
   } catch {}
-  // Trigger vless:// URI scheme which Android prompts to open with installed VLESS app
+  // Trigger vless:// URI scheme which Android prompts to open with installed Nexus Tunnel app
   window.location.href = vlessUri;
 }

@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import {
   triggerApkDownload,
-  openVlessInInstalledApp,
-  APK_OFFICIAL_URL_ARM64,
-  APK_OFFICIAL_URL_UNIVERSAL
+  openVlessInInstalledApp
 } from '../services/apkBuilder';
+import { GithubConfigService, GithubRepoConfig } from '../services/githubConfig';
 import { UserSession } from '../types/vpn';
 import { buildVlessUri } from '../services/vlessConfig';
 import {
@@ -26,7 +25,10 @@ import {
   ArrowDownCircle,
   Zap,
   Server,
-  AlertTriangle,
+  GitBranch,
+  Github,
+  Settings,
+  Save,
   HelpCircle
 } from 'lucide-react';
 
@@ -46,6 +48,16 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
   const [qrCodeData, setQrCodeData] = useState<string>('');
   const [copiedVless, setCopiedVless] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // GitHub Repo Configuration State
+  const [githubConfig, setGithubConfig] = useState<GithubRepoConfig>(() =>
+    GithubConfigService.getConfig()
+  );
+  const [isEditingGithub, setIsEditingGithub] = useState(false);
+  const [githubSaved, setGithubSaved] = useState(false);
+
+  const directGithubApkUrl = GithubConfigService.getDirectApkDownloadUrl(githubConfig);
+  const githubRepoUrl = GithubConfigService.getRepoUrl(githubConfig);
 
   // VLESS URI for this session or default server config
   const defaultSession: UserSession = session || {
@@ -91,16 +103,24 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
     }).then((url) => setQrCodeData(url));
   }, [vlessUri]);
 
-  const handleDownload = async (arch: 'arm64' | 'universal' = 'arm64') => {
+  const handleDownload = async () => {
     try {
       setDownloading(true);
-      const filename = await triggerApkDownload(session, undefined, arch);
+      const filename = await triggerApkDownload(session, undefined, 'arm64', githubConfig);
       setDownloadSuccess(filename);
       setTimeout(() => setDownloading(false), 1500);
     } catch (err) {
       console.error('Download failed', err);
       setDownloading(false);
     }
+  };
+
+  const handleSaveGithub = (e: React.FormEvent) => {
+    e.preventDefault();
+    GithubConfigService.saveConfig(githubConfig);
+    setGithubSaved(true);
+    setIsEditingGithub(false);
+    setTimeout(() => setGithubSaved(false), 2500);
   };
 
   const handleCopyVless = () => {
@@ -110,7 +130,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(directGithubApkUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
@@ -125,10 +145,11 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
           </div>
           <div>
             <h1 className="text-base sm:text-lg font-cyber font-bold tracking-wide text-white flex items-center gap-2">
-              NEXUS TUNNEL <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">APK OFFICIEL VLESS</span>
+              NEXUS TUNNEL <span className="text-xs bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30">RELEASES GITHUB OFFICIELLES</span>
             </h1>
-            <p className="text-xs text-slate-400 font-mono">
-              Fichier d'installation Android (.apk) • Taille Réelle : 31.2 Mo Signé
+            <p className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
+              <Github className="w-3.5 h-3.5 text-slate-400" />
+              <span>Repo: {githubConfig.owner}/{githubConfig.repo}</span>
             </p>
           </div>
         </div>
@@ -163,24 +184,25 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className="text-xs font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Fichier .APK Officiel Signé (31.2 Mo)
+                  <ShieldCheck className="w-3.5 h-3.5" /> Package Nexus Tunnel (.apk)
                 </span>
-                <span className="text-xs font-mono bg-cyan-950 text-cyan-300 border border-cyan-800/40 px-2.5 py-1 rounded-full">
-                  Android 8.0 à 14+ (ARM64 & Universal)
+                <span className="text-xs font-mono bg-cyan-950 text-cyan-300 border border-cyan-800/40 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <Github className="w-3 h-3 text-cyan-400" />
+                  GitHub Release: {githubConfig.tag}
                 </span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-cyber font-extrabold text-white leading-tight mb-2">
-                Télécharger l'Application Nexus Tunnel (.apk)
+                Télécharger votre APK Nexus Tunnel
               </h2>
               <p className="text-sm text-slate-300 leading-relaxed mb-6">
-                Véritable package d'installation Android complet de <strong>31.2 Mo</strong> intégrant le moteur natif <strong>VLESS-XTLS / Xray Core</strong>. Ce fichier s'installe sans aucune erreur d'analyse et se connecte directement à votre serveur Nexus Tunnel.
+                Le fichier d'installation est hébergé et distribué directement depuis votre propre repository GitHub <strong>{githubConfig.owner}/{githubConfig.repo}</strong> avec configuration automatique vers votre host VLESS.
               </p>
 
-              {/* Primary Download Buttons */}
+              {/* Big Primary Download Button */}
               <div className="space-y-3">
                 <button
-                  onClick={() => handleDownload('arm64')}
+                  onClick={handleDownload}
                   disabled={downloading}
                   className="w-full relative group overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-cyber font-bold text-base py-4 px-6 rounded-2xl shadow-xl shadow-emerald-950/40 transition-all transform active:scale-[0.99] flex items-center justify-center gap-3"
                 >
@@ -188,34 +210,34 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                   <ArrowDownCircle className={`w-7 h-7 text-white ${downloading ? 'animate-bounce' : ''}`} />
                   <div className="text-left">
                     <div className="text-base font-extrabold tracking-wide">
-                      {downloading ? 'TÉLÉCHARGEMENT DU PACKAGE (31.2 Mo)...' : 'TÉLÉCHARGER LE FICHIER .APK (31.2 Mo)'}
+                      {downloading ? 'LANCEMENT DU TÉLÉCHARGEMENT...' : `TÉLÉCHARGER ${githubConfig.apkName}`}
                     </div>
                     <div className="text-[11px] text-white/90 font-normal font-sans">
-                      Version ARM64-v8a • Recommandée pour tous téléphones récents (Samsung, Tecno, Infinix, Xiaomi, etc.)
+                      Lien direct depuis GitHub : {githubConfig.owner}/{githubConfig.repo}
                     </div>
                   </div>
                 </button>
 
-                {/* Alternative Direct Download Mirror (Universal) */}
+                {/* Direct GitHub Links Bar */}
                 <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
                   <a
-                    href={APK_OFFICIAL_URL_ARM64}
+                    href={directGithubApkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full sm:w-1/2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-colors"
                   >
-                    <Download className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Lien Direct Miroir ARM64 (31.2 Mo)</span>
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Lien Direct APK (.apk)</span>
                   </a>
 
                   <a
-                    href={APK_OFFICIAL_URL_UNIVERSAL}
+                    href={githubRepoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full sm:w-1/2 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition-colors"
                   >
-                    <Download className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Version Universelle (Tous CPU)</span>
+                    <Github className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Ouvrir mon Repo GitHub</span>
                   </a>
                 </div>
 
@@ -223,7 +245,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                   <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2 animate-fade-in mt-2">
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>
-                      Téléchargement du package de <strong>31.2 Mo</strong> lancé ! Appuyez sur la notification Android pour l'installer.
+                      Téléchargement de <strong>{downloadSuccess}</strong> lancé depuis votre repo GitHub !
                     </span>
                   </div>
                 )}
@@ -234,15 +256,15 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-cyber font-bold text-cyan-300 flex items-center gap-1.5">
                     <Zap className="w-4 h-4 text-yellow-400" />
-                    UNE FOIS L'APK INSTALLÉ : ACTIVER EN 1-CLIC
+                    CONNEXION IMMÉDIATE AU SERVEUR (1-CLIC)
                   </span>
                   <span className="text-[10px] bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-800">
-                    Configuration VLESS Prête
+                    Host Prêt
                   </span>
                 </div>
 
                 <p className="text-xs text-slate-300">
-                  Après avoir installé l'application sur votre téléphone, appuyez sur le bouton ci-dessous : Android ouvrira directement l'application et y configurera votre serveur automatiquement !
+                  Après avoir installé votre APK sur le smartphone, appuyez sur le bouton ci-dessous : votre téléphone ouvrira l'application et y connectera instantanément votre serveur <strong>nexus-tunnel-d-ploiement-gestionnaire-vless.ai.studio</strong>.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -251,7 +273,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                     className="flex-1 py-3 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-cyber font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-950 transition-all"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    <span>OUVRIR ET IMPORTER DANS L'APPLICATION (1-CLIC)</span>
+                    <span>ACTIVER ET CONNECTER EN 1-CLIC (INTENT VLESS)</span>
                   </button>
 
                   <button
@@ -263,79 +285,138 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
                   </button>
                 </div>
               </div>
-
-              {/* APK Specs Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-4 border-t border-slate-800/80">
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                  <div className="text-[10px] text-slate-500 uppercase font-mono">Format</div>
-                  <div className="font-mono font-bold text-cyan-300 text-xs mt-0.5">.APK (Android Natif)</div>
-                </div>
-
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                  <div className="text-[10px] text-slate-500 uppercase font-mono">Taille Complète</div>
-                  <div className="font-mono font-bold text-emerald-400 text-xs mt-0.5">31.2 Mo (31 245 Ko)</div>
-                </div>
-
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                  <div className="text-[10px] text-slate-500 uppercase font-mono">Architecture</div>
-                  <div className="font-mono font-bold text-white text-xs mt-0.5">ARM64-v8a / Universal</div>
-                </div>
-
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-                  <div className="text-[10px] text-slate-500 uppercase font-mono">Moteur Core</div>
-                  <div className="font-mono font-bold text-teal-300 text-xs mt-0.5">Xray / VLESS v1.9</div>
-                </div>
-              </div>
             </div>
 
-            {/* Android Installation Guide (4 Steps) */}
-            <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 sm:p-7 space-y-4">
-              <h3 className="text-base font-cyber font-bold text-white flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-cyan-400" />
-                <span>Guide : Comment installer le fichier .apk sans erreur</span>
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-                  <div className="font-bold text-cyan-400 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-[11px]">1</span>
-                    <span>Télécharger les 31.2 Mo</span>
-                  </div>
-                  <p className="text-slate-400 text-[11px] leading-relaxed">
-                    Appuyez sur le gros bouton vert. Le fichier complet de 31.2 Mo se télécharge dans la barre de notifications.
-                  </p>
+            {/* GitHub Configuration & Customization Card */}
+            <div className="bg-[#0c1322] border border-slate-800 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Github className="w-5 h-5 text-cyan-400" />
+                  <h3 className="text-base font-cyber font-bold text-white">
+                    Configuration de votre Dépôt GitHub pour l'APK
+                  </h3>
                 </div>
 
-                <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-                  <div className="font-bold text-cyan-400 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-[11px]">2</span>
-                    <span>Autoriser la source inconnue</span>
-                  </div>
-                  <p className="text-slate-400 text-[11px] leading-relaxed">
-                    Si Android affiche <em>« Pour votre sécurité, votre téléphone n'est pas autorisé... »</em>, cliquez sur <strong>Paramètres</strong> et cochez <strong>« Autoriser cette source »</strong>.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-                  <div className="font-bold text-cyan-400 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-[11px]">3</span>
-                    <span>Appuyer sur « Installer »</span>
-                  </div>
-                  <p className="text-slate-400 text-[11px] leading-relaxed">
-                    L'application s'installe en quelques secondes avec l'icône de l'application sur votre écran d'accueil Android.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-1">
-                  <div className="font-bold text-cyan-400 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-[11px]">4</span>
-                    <span>Importer & Se connecter</span>
-                  </div>
-                  <p className="text-slate-400 text-[11px] leading-relaxed">
-                    Ouvrez l'application, appuyez sur <strong>+</strong> puis <strong>« Importer depuis le presse-papiers »</strong> ou scannez le QR code ci-contre pour démarrer immédiatement !
-                  </p>
-                </div>
+                <button
+                  onClick={() => setIsEditingGithub(!isEditingGithub)}
+                  className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>{isEditingGithub ? 'Fermer' : 'Modifier le Dépôt'}</span>
+                </button>
               </div>
+
+              <div className="text-xs text-slate-400 leading-relaxed">
+                Le fichier de build automatique <code className="text-cyan-300 bg-slate-900 px-1.5 py-0.5 rounded font-mono">.github/workflows/build-apk.yml</code> est déjà inclus dans votre projet. Dès que vous pushez sur votre repo GitHub, votre release est créée automatiquement.
+              </div>
+
+              {isEditingGithub ? (
+                <form onSubmit={handleSaveGithub} className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Nom d'utilisateur GitHub
+                      </label>
+                      <input
+                        type="text"
+                        value={githubConfig.owner}
+                        onChange={(e) => setGithubConfig({ ...githubConfig, owner: e.target.value.trim() })}
+                        placeholder="ex: tchindaazice"
+                        className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Nom du Dépôt (Repository)
+                      </label>
+                      <input
+                        type="text"
+                        value={githubConfig.repo}
+                        onChange={(e) => setGithubConfig({ ...githubConfig, repo: e.target.value.trim() })}
+                        placeholder="ex: nexus-tunnel-vpn"
+                        className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Tag / Version de la Release
+                      </label>
+                      <input
+                        type="text"
+                        value={githubConfig.tag}
+                        onChange={(e) => setGithubConfig({ ...githubConfig, tag: e.target.value.trim() })}
+                        placeholder="ex: v3.2.0 ou latest"
+                        className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Nom du fichier APK
+                      </label>
+                      <input
+                        type="text"
+                        value={githubConfig.apkName}
+                        onChange={(e) => setGithubConfig({ ...githubConfig, apkName: e.target.value.trim() })}
+                        placeholder="ex: NexusTunnel-v3.2.0.apk"
+                        className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Ou URL de téléchargement personnalisée directe (Optionnel) :
+                    </label>
+                    <input
+                      type="url"
+                      value={githubConfig.customDownloadUrl || ''}
+                      onChange={(e) => setGithubConfig({ ...githubConfig, customDownloadUrl: e.target.value.trim() })}
+                      placeholder="https://..."
+                      className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-cyber font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-cyan-950"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>ENREGISTRER LA CONFIGURATION GITHUB</span>
+                  </button>
+                </form>
+              ) : (
+                <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400">URL Actuelle du Fichier APK :</span>
+                    <button
+                      onClick={handleCopyLink}
+                      className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                    >
+                      {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedLink ? 'Copié' : 'Copier'}</span>
+                    </button>
+                  </div>
+                  <div className="text-[11px] font-mono text-emerald-400 break-all select-all">
+                    {directGithubApkUrl}
+                  </div>
+                </div>
+              )}
+
+              {githubSaved && (
+                <div className="p-2.5 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Configuration du dépôt GitHub enregistrée ! Le bouton pointe désormais sur vos releases.</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -361,7 +442,7 @@ export const ApkDownloadPage: React.FC<ApkDownloadPageProps> = ({
               </div>
 
               <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed">
-                Ouvrez l'application VPN sur votre smartphone, appuyez sur <strong className="text-cyan-400">+</strong> puis <strong className="text-cyan-400">« Scanner le code QR »</strong> pour vous connecter immédiatement à votre host Nexus Tunnel.
+                Une fois votre APK Nexus Tunnel installé sur votre téléphone, scannez ce QR code pour importer automatiquement votre serveur et votre quota.
               </p>
 
               <button

@@ -29,10 +29,15 @@ import {
   Zap,
   Eye,
   Trash2,
-  Edit3
+  Edit3,
+  Github,
+  GitBranch,
+  Save,
+  Download
 } from 'lucide-react';
 
 import { triggerApkDownload } from '../services/apkBuilder';
+import { GithubConfigService, GithubRepoConfig } from '../services/githubConfig';
 
 interface WebPanelAdminProps {
   onBackToApp: () => void;
@@ -41,11 +46,17 @@ interface WebPanelAdminProps {
 
 export const WebPanelAdmin: React.FC<WebPanelAdminProps> = ({ onBackToApp, onOpenDownloadPage }) => {
   const [requests, setRequests] = useState<MembershipRequest[]>([]);
-  const [activeTab, setActiveTab] = useState<'REQUESTS' | 'USERS' | 'TOKEN_GEN' | 'SERVER'>('REQUESTS');
+  const [activeTab, setActiveTab] = useState<'REQUESTS' | 'USERS' | 'TOKEN_GEN' | 'SERVER' | 'GITHUB'>('REQUESTS');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedWebPanelLink, setCopiedWebPanelLink] = useState(false);
   const [isDownloadingApk, setIsDownloadingApk] = useState(false);
+
+  // GitHub repo config state
+  const [githubConfig, setGithubConfig] = useState<GithubRepoConfig>(() =>
+    GithubConfigService.getConfig()
+  );
+  const [githubSaved, setGithubSaved] = useState(false);
 
   const directWebPanelUrl = `${window.location.origin}${window.location.pathname}?panel=admin`;
 
@@ -355,6 +366,18 @@ export const WebPanelAdmin: React.FC<WebPanelAdminProps> = ({ onBackToApp, onOpe
           >
             <Server className="w-4 h-4" />
             <span>DOCKER & HOST STATUS</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('GITHUB')}
+            className={`px-4 py-2 rounded-xl text-xs font-cyber font-bold tracking-wider flex items-center gap-2 transition-all ${
+              activeTab === 'GITHUB'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 bg-slate-900/60 border border-slate-800'
+            }`}
+          >
+            <Github className="w-4 h-4 text-cyan-400" />
+            <span>REPO GITHUB & APK RELEASES</span>
           </button>
         </div>
 
@@ -855,6 +878,172 @@ export const WebPanelAdmin: React.FC<WebPanelAdminProps> = ({ onBackToApp, onOpe
                 <div className="text-emerald-400">[WEBSOCKET] Path /nexus-tunnel upgrade handler ready.</div>
                 <div className="text-slate-500">[ACCESS LOG] Session keep-alive ping received from African telecom gateway (latency: 42ms).</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: GITHUB REPO & APK RELEASE MANAGEMENT */}
+        {activeTab === 'GITHUB' && (
+          <div className="space-y-4">
+            <div className="bg-[#0c1322] border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-slate-900 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                    <Github className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-cyber font-bold text-white">
+                      DÉPÔT GITHUB PERSONNEL & TÉLÉCHARGEMENT DE L'APK
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Configurez l'adresse de votre propre dépôt GitHub pour que tous les boutons téléchargent votre APK.
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={GithubConfigService.getRepoUrl(githubConfig)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Voir mon Dépôt GitHub</span>
+                </a>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  GithubConfigService.saveConfig(githubConfig);
+                  setGithubSaved(true);
+                  setTimeout(() => setGithubSaved(false), 2500);
+                }}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Nom d'utilisateur GitHub (Owner) :
+                    </label>
+                    <input
+                      type="text"
+                      value={githubConfig.owner}
+                      onChange={(e) => setGithubConfig({ ...githubConfig, owner: e.target.value.trim() })}
+                      placeholder="ex: tchindaazice"
+                      className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-cyan-400"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Nom du Repository GitHub :
+                    </label>
+                    <input
+                      type="text"
+                      value={githubConfig.repo}
+                      onChange={(e) => setGithubConfig({ ...githubConfig, repo: e.target.value.trim() })}
+                      placeholder="ex: nexus-tunnel-vpn"
+                      className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-cyan-400"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Tag de la Release GitHub :
+                    </label>
+                    <input
+                      type="text"
+                      value={githubConfig.tag}
+                      onChange={(e) => setGithubConfig({ ...githubConfig, tag: e.target.value.trim() })}
+                      placeholder="ex: v3.2.0"
+                      className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-cyan-400"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Nom du fichier APK dans la Release :
+                    </label>
+                    <input
+                      type="text"
+                      value={githubConfig.apkName}
+                      onChange={(e) => setGithubConfig({ ...githubConfig, apkName: e.target.value.trim() })}
+                      placeholder="ex: NexusTunnel-v3.2.0.apk"
+                      className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-cyan-400"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    URL directe de téléchargement APK (Optionnel - surcharge) :
+                  </label>
+                  <input
+                    type="url"
+                    value={githubConfig.customDownloadUrl || ''}
+                    onChange={(e) => setGithubConfig({ ...githubConfig, customDownloadUrl: e.target.value.trim() })}
+                    placeholder="https://github.com/..."
+                    className="w-full bg-slate-950 font-mono text-xs border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                {/* Calculated Direct Download Link Preview */}
+                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                  <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                    <span>Lien Actuel de Téléchargement APK :</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(GithubConfigService.getDirectApkDownloadUrl(githubConfig));
+                        setCopiedId('gh_link');
+                        setTimeout(() => setCopiedId(null), 2000);
+                      }}
+                      className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                    >
+                      {copiedId === 'gh_link' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedId === 'gh_link' ? 'Copié' : 'Copier le lien'}</span>
+                    </button>
+                  </div>
+                  <div className="font-mono text-xs text-emerald-400 break-all select-all">
+                    {GithubConfigService.getDirectApkDownloadUrl(githubConfig)}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-cyber font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>ENREGISTRER LA CONFIGURATION GITHUB</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerApkDownload(null, undefined, 'arm64', githubConfig);
+                    }}
+                    className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold rounded-xl flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4 text-cyan-400" />
+                    <span>Tester le Téléchargement</span>
+                  </button>
+                </div>
+
+                {githubSaved && (
+                  <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Paramètres du dépôt GitHub enregistrés avec succès !</span>
+                  </div>
+                )}
+              </form>
             </div>
           </div>
         )}
